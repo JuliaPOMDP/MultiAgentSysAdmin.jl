@@ -322,7 +322,7 @@ function POMDPs.gen(p::AbstractSysAdmin, s, a, rng)
     end
 
     if p.global_rewards
-        return (sp=sp_vec, r=sum(r_vec).*ones(size(r_vec)))
+        return (sp=sp_vec, r=sum(r_vec))
     end
     return (sp=sp_vec, r=r_vec)
 end
