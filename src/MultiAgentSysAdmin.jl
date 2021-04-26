@@ -135,8 +135,8 @@ MAPOMDPs.n_agents(p::RingofRingSysAdmin) = p.nagents_per_ring * p.nrings
 
 MAPOMDPs.agent_actions(p::AbstractSysAdmin, idx::Int64, s::MachineState) = MachineAction
 MAPOMDPs.agent_actions(p::AbstractSysAdmin, idx::Int64) = MachineAction
-MAPOMDPs.agent_actionindex(p::AbstractSysAdmin, idx::Int64, a) = findfirst(isequal(a), agent_actions(p, idx))
-POMDPs.actions(p::AbstractSysAdmin) = vec(map(collect, Iterators.product((agent_actions(p, i) for i in 1:n_agents(p))...)))
+MAPOMDPs.agent_actionindex(p::AbstractSysAdmin, idx::Int64, a) = findfirst(isequal(a), MAPOMDPs.agent_actions(p, idx))
+POMDPs.actions(p::AbstractSysAdmin) = vec(map(collect, Iterators.product((MAPOMDPs.agent_actions(p, i) for i in 1:MAPOMDPs.n_agents(p))...)))
 POMDPs.actionindex(p::AbstractSysAdmin, a) = findfirst(isequal(a), POMDPs.actions(p))
 
 function coord_graph_adj_mat(p::UniSysAdmin)
@@ -217,12 +217,12 @@ end
 # status: good, fail, dead
 # load: idle, work, done
 MAPOMDPs.agent_states(p::AbstractSysAdmin, idx::Int64) = vec(MachineState[MachineState(status,load) for status in 1:3, load in 1:3])
-MAPOMDPs.agent_stateindex(p::AbstractSysAdmin, idx::Int64, s) = findfirst(isequal(s), agent_states(p, idx))
-POMDPs.states(p::AbstractSysAdmin) = vec(map(collect, Iterators.product((agent_states(p, i) for i in 1:n_agents(p))...)))
-POMDPs.stateindex(p::AbstractSysAdmin, s) = findfirst(isequal(s), states(p))
+MAPOMDPs.agent_stateindex(p::AbstractSysAdmin, idx::Int64, s) = findfirst(isequal(s), MAPODMPs.agent_states(p, idx))
+POMDPs.states(p::AbstractSysAdmin) = vec(map(collect, Iterators.product((MAPOMDPs.agent_states(p, i) for i in 1:MAPOMDPs.n_agents(p))...)))
+POMDPs.stateindex(p::AbstractSysAdmin, s) = findfirst(isequal(s), POMDPs.states(p))
 
 function POMDPs.initialstate(p::AbstractSysAdmin)
-    return Deterministic(MachineState[MachineState(1, 1) for _ in 1:n_agents(p)])
+    return Deterministic(MachineState[MachineState(1, 1) for _ in 1:MAPOMDPs.n_agents(p)])
 end
 
 """
@@ -239,7 +239,7 @@ function POMDPs.gen(p::AbstractSysAdmin, s, a, rng)
     coordgraph = coordination_graph(p) #SimpleGraph(coord_graph_adj_mat(p))
     sp_vec = Vector{MachineState}(undef, n_agents(p))
     r_vec = Vector{Float64}(undef, n_agents(p))
-    for aidx in 1:n_agents(p)
+    for aidx in 1:MAPOMDPs.n_agents(p)
         rew = 0.0
         bonus = 0.0
         neighs = neighbors(coordgraph, aidx)
