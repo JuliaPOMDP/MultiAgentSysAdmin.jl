@@ -33,9 +33,9 @@ an additional failing probability of `p_fail_bonus/2`. If the same machine
 has one faulty neighbor and one dead neighbor, it will get a penalty of
 `p_fail_bonus/2 + p_dead_bonus/2`.
 """
-abstract type AbstractSysAdmin <: JointMDP{Vector{MachineState}, Vector{Int}} end
+abstract type AbstractSysAdmin{Bool} <: JointMDP{Vector{MachineState}, Vector{Int}} end
 
-Base.@kwdef struct UniSysAdmin <: AbstractSysAdmin
+Base.@kwdef struct UniSysAdmin{T} <: AbstractSysAdmin{T}
     nagents::Int = 4
     # status
     p_fail_base::Float64 = 0.4
@@ -48,11 +48,10 @@ Base.@kwdef struct UniSysAdmin <: AbstractSysAdmin
     p_doneF::Float64 = 0.6
 
     discount::Float64 = 0.9
-    global_rewards::Bool = false
     reboot_penalty = -0.7
 end
 
-Base.@kwdef struct BiSysAdmin <: AbstractSysAdmin
+Base.@kwdef struct BiSysAdmin{T} <: AbstractSysAdmin{T}
     nagents::Int = 4
     # status
     p_fail_base::Float64 = 0.4
@@ -65,11 +64,10 @@ Base.@kwdef struct BiSysAdmin <: AbstractSysAdmin
     p_doneF::Float64 = 0.6
 
     discount::Float64 = 0.9
-    global_rewards::Bool = false
     reboot_penalty = -0.0
 end
 
-Base.@kwdef struct RingofRingSysAdmin <: AbstractSysAdmin
+Base.@kwdef struct RingofRingSysAdmin{T} <: AbstractSysAdmin{T}
     nrings::Int = 3
     nagents_per_ring::Int = 3
     # status
@@ -83,11 +81,10 @@ Base.@kwdef struct RingofRingSysAdmin <: AbstractSysAdmin
     p_doneF::Float64 = 0.6
 
     discount::Float64 = 0.9
-    global_rewards::Bool = false
     reboot_penalty = -0.0
 end
 
-Base.@kwdef struct StarSysAdmin <: AbstractSysAdmin
+Base.@kwdef struct StarSysAdmin{T} <: AbstractSysAdmin{T}
     nagents::Int = 4
     # status
     p_fail_base::Float64 = 0.4
@@ -100,11 +97,10 @@ Base.@kwdef struct StarSysAdmin <: AbstractSysAdmin
     p_doneF::Float64 = 0.6
 
     discount::Float64 = 0.9
-    global_rewards::Bool = false
     reboot_penalty = -0.0
 end
 
-Base.@kwdef struct RandomSysAdmin <: AbstractSysAdmin
+Base.@kwdef struct RandomSysAdmin{T} <: AbstractSysAdmin{T}
     nagents::Int = 4
     nedges::Int = 5
     seed::Int = 1
@@ -119,7 +115,6 @@ Base.@kwdef struct RandomSysAdmin <: AbstractSysAdmin
     p_doneF::Float64 = 0.6
 
     discount::Float64 = 0.9
-    global_rewards::Bool = false
     reboot_penalty = -0.0
 end
 
@@ -225,20 +220,10 @@ function POMDPs.initialstate(p::AbstractSysAdmin)
     return Deterministic(MachineState[MachineState(1, 1) for _ in 1:MAPOMDPs.n_agents(p)])
 end
 
-"""
-Basically, the only way we can get reward is by:
-- Starting from the Load state (since it's the only one that can complete)
-- Doing action 0;
-- And ending up in the Done state.
-dead machine increases the probability that its neighbors become faulty and die
-system receives a reward of 1 if a process terminates successfully
-status is faulty, processes take longer to terminate
-If the machine dies, the process is lost.
-"""
-function POMDPs.gen(p::AbstractSysAdmin, s, a, rng)
-    coordgraph = coordination_graph(p) #SimpleGraph(coord_graph_adj_mat(p))
-    sp_vec = Vector{MachineState}(undef, n_agents(p))
-    r_vec = Vector{Float64}(undef, n_agents(p))
+function sysadmin_loop(p, s, a, rng)
+    coordgraph = MAPOMDPs.coordination_graph(p) #SimpleGraph(coord_graph_adj_mat(p))
+    sp_vec = Vector{MachineState}(undef, MAPOMDPs.n_agents(p))
+    r_vec = Vector{Float64}(undef, MAPOMDPs.n_agents(p))
     for aidx in 1:MAPOMDPs.n_agents(p)
         rew = 0.0
         bonus = 0.0
@@ -320,11 +305,26 @@ function POMDPs.gen(p::AbstractSysAdmin, s, a, rng)
         sp_vec[aidx] = MachineState(newstatus, newload)
         r_vec[aidx] = rew
     end
-
-    if p.global_rewards
-        return (sp=sp_vec, r=sum(r_vec))
-    end
     return (sp=sp_vec, r=r_vec)
+end
+
+"""
+Basically, the only way we can get reward is by:
+- Starting from the Load state (since it's the only one that can complete)
+- Doing action 0;
+- And ending up in the Done state.
+dead machine increases the probability that its neighbors become faulty and die
+system receives a reward of 1 if a process terminates successfully
+status is faulty, processes take longer to terminate
+If the machine dies, the process is lost.
+"""
+function POMDPs.gen(p::AbstractSysAdmin{false}, s, a, rng)
+    return sysadmin_loop(p, s, a, rng)    
+end
+
+function POMDPs.gen(p::AbstractSysAdmin{true}, s, a, rng)
+    sp_vec, r_vec = sysadmin_loop(p, s, a, rng)
+    return (sp=sp_vec, r=sum(r_vec))
 end
 
 export UniSysAdmin, BiSysAdmin, RingofRingSysAdmin, RandomSysAdmin
