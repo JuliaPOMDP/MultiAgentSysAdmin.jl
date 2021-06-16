@@ -206,7 +206,7 @@ function coord_graph_adj_mat(p::StarSysAdmin)
 end
 
 function MAPOMDPs.coordination_graph(p::StarSysAdmin)
-    SimpleGraph(coordination_graph_adj_mat(p))
+    SimpleGraph(coord_graph_adj_mat(p))
 end
 
 # status: good, fail, dead
