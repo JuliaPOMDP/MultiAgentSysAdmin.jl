@@ -1,7 +1,7 @@
 name = "MultiAgentSysAdmin"
 uuid = "a4538d8c-5052-4f30-aec9-286910cf67a1"
 authors = ["rejuvyesh <mail@rejuvyesh.com> and contributors"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 LightGraphs = "093fc24a-ae57-5d10-9952-331d41423f4d"
