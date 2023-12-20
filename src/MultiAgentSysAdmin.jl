@@ -2,12 +2,12 @@ module MultiAgentSysAdmin
 
 # Write your package code here.
 using StaticArrays
-using LightGraphs
+using Graphs
 using POMDPs
 using Random
 
 using MultiAgentPOMDPs
-using POMDPModelTools: Deterministic
+using POMDPTools: Deterministic
 
 const MAPOMDPs = MultiAgentPOMDPs
 
